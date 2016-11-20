@@ -16,7 +16,8 @@ out/
 # Gradle files
 .gradle/
 build/
-
+gradle/
+gradle*
 # Local configuration file (sdk path, etc)
 local.properties
 
@@ -33,8 +34,16 @@ proguard/
 captures/
 
 # Intellij
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
+.idea/
 *.iml
-.idea/workspace.xml
+gradle
+*.pro
 
-# Keystore files
-*.jks
+
