@@ -62,8 +62,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         destination = (EditText) findViewById(R.id.destination);
         locationListener = new myLocationListener();
         location = getCurrentLocation();
-        SOURCE_BITMAP = createMarkersIcon(R.drawable.boy);
-        DESTINATION_BITMAP = createMarkersIcon(R.drawable.treasure);
+        SOURCE_BITMAP = createMarkersIcon(R.drawable.car, 100, 150);
+        DESTINATION_BITMAP = createMarkersIcon(R.drawable.flag,150, 100);
         onMapReadyCallback = this;
         CONTEXT = this;
         go.setOnClickListener(new View.OnClickListener() {
@@ -113,9 +113,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         MAP_STARTED = true;
     }
 
-    private BitmapDescriptor createMarkersIcon(int drawable) {
-        int height = 200;
-        int width = 200;
+    private BitmapDescriptor createMarkersIcon(int drawable, int height, int width) {
         BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(drawable);
         Bitmap b=bitmapdraw.getBitmap();
         Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
