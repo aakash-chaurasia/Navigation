@@ -4,6 +4,10 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -27,6 +31,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.security.PrivateKey;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -50,6 +55,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private OnMapReadyCallback onMapReadyCallback;
     private Context CONTEXT;
     private Boolean MAP_STARTED = false;
+    private SensorManager sensorManager;
+    private SensorEventListener mySensorEventListener;
+    private float AZIMUTH = 0;
+    private List<Sensor> mySensors;
+    private Sensor mAccelerometer;
+    private Sensor mMagnetometer;
+    private float[] mLastAccelerometer = new float[3];
+    private float[] mLastMagnetometer = new float[3];
+    private boolean mLastAccelerometerSet = false;
+    private boolean mLastMagnetometerSet = false;
+    private float[] mR = new float[9];
+    private float[] mOrientation = new float[3];
+    private float mCurrentDegree = 0f;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +79,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         go = (Button) findViewById(R.id.button);
         destination = (EditText) findViewById(R.id.destination);
         locationListener = new myLocationListener();
+        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        mySensors = sensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
+        mAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mMagnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        mySensorEventListener = new mySensorEventListener();
         location = getCurrentLocation();
         SOURCE_BITMAP = createMarkersIcon(R.drawable.car, 100, 150);
         DESTINATION_BITMAP = createMarkersIcon(R.drawable.flag,150, 100);
@@ -164,6 +187,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
         locationManager.requestLocationUpdates(provStr, 10, 0, locationListener);
+        sensorManager.registerListener(mySensorEventListener, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(mySensorEventListener, mMagnetometer, SensorManager.SENSOR_DELAY_GAME);
         return location;
     }
 
@@ -173,6 +198,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         public void onLocationChanged(Location location) {
             if(MAP_STARTED) {
                 SOURCE = new LatLng(location.getLatitude(), location.getLongitude());
+                sourceMarker.setRotation(AZIMUTH);
                 sourceMarker.setPosition(SOURCE);
             }
         }
@@ -192,4 +218,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
     }
+
+    class mySensorEventListener implements SensorEventListener {
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            //device heading in degrees
+            if (event.sensor == mAccelerometer) {
+                System.arraycopy(event.values, 0, mLastAccelerometer, 0, event.values.length);
+                mLastAccelerometerSet = true;
+            } else if (event.sensor == mMagnetometer) {
+                System.arraycopy(event.values, 0, mLastMagnetometer, 0, event.values.length);
+                mLastMagnetometerSet = true;
+            }
+            if (mLastAccelerometerSet && mLastMagnetometerSet) {
+                SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer);
+                SensorManager.getOrientation(mR, mOrientation);
+                float azimuthInRadians = mOrientation[0];
+                float azimuthInDegress = (float)(Math.toDegrees(azimuthInRadians)+360)%360;
+                AZIMUTH = azimuthInDegress;
+            }
+        }
+    };
 }
