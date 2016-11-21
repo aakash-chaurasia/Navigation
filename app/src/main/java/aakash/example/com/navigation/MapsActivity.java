@@ -1,5 +1,6 @@
 package aakash.example.com.navigation;
 
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -9,6 +10,9 @@ import android.location.LocationManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -41,20 +45,40 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Marker sourceMarker;
     private String provStr = LocationManager.GPS_PROVIDER;
     private Location location;
-
+    private Button go;
+    private EditText destination;
+    private OnMapReadyCallback onMapReadyCallback;
+    private Context CONTEXT;
+    private Boolean MAP_STARTED = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
+        setContentView(R.layout.activity_main);
         navigationHelper = new NavigationHelper();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        final SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.googleMap);
+        go = (Button) findViewById(R.id.button);
+        destination = (EditText) findViewById(R.id.destination);
         locationListener = new myLocationListener();
         location = getCurrentLocation();
         SOURCE_BITMAP = createMarkersIcon(R.drawable.boy);
         DESTINATION_BITMAP = createMarkersIcon(R.drawable.treasure);
-        mapFragment.getMapAsync(this);
+        onMapReadyCallback = this;
+        CONTEXT = this;
+        go.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mMap != null) {
+                    mMap.clear();
+                }
+                String destinationstr = destination.getText().toString();
+                DESTINATION = navigationHelper.getLatLngFromAddress(CONTEXT, destinationstr);
+                if(DESTINATION != null) {
+                    mapFragment.getMapAsync(onMapReadyCallback);
+                }
+            }
+        });
     }
 
     /**
@@ -86,6 +110,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         CameraUpdate cameraUpdate = getCameraPosition();
         mMap.moveCamera(cameraUpdate);
+        MAP_STARTED = true;
     }
 
     private BitmapDescriptor createMarkersIcon(int drawable) {
@@ -148,8 +173,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         private String tag = "me";
         @Override
         public void onLocationChanged(Location location) {
-            SOURCE = new LatLng(location.getLatitude(), location.getLongitude());
-            sourceMarker.setPosition(SOURCE);
+            if(MAP_STARTED) {
+                SOURCE = new LatLng(location.getLatitude(), location.getLongitude());
+                sourceMarker.setPosition(SOURCE);
+            }
         }
 
         @Override

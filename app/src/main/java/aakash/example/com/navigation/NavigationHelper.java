@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Address;
 import android.location.Criteria;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
@@ -52,6 +54,25 @@ public class NavigationHelper {
         String output = "json";
         String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + params;
         return url;
+    }
+
+    public LatLng getLatLngFromAddress(Context context,String strAddress) {
+
+        Geocoder geocoder = new Geocoder(context);
+        Address address;
+        LatLng latLng = null;
+
+        try {
+            address = geocoder.getFromLocationName(strAddress, 5).get(0);
+            if (address == null) {
+                return null;
+            }
+            latLng = new LatLng(address.getLatitude(), address.getLongitude() );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return latLng;
     }
 
     class GetJSONRoutes extends AsyncTask<String, Void, String> {
