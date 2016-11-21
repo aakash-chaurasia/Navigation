@@ -1,12 +1,17 @@
 package aakash.example.com.navigation;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -22,13 +27,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import static android.content.Context.LOCATION_SERVICE;
+
 /**
  * Created by Aakash on 11/20/2016.
  */
 
 public class NavigationHelper {
     private GoogleMap mMap;
-    private int COLOR = Color.CYAN;
+    private int COLOR = Color.BLUE;
     public void plotMap(GoogleMap mMap, LatLng SOURCE, LatLng DESTINATION) {
         this.mMap = mMap;
         String url = getDirectionApiURL(SOURCE, DESTINATION);
@@ -44,6 +51,35 @@ public class NavigationHelper {
         String output = "json";
         String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + params;
         return url;
+    }
+
+    public Location getCurrentLocation(Context context, Activity activity){
+        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION},
+                    1000 );
+        }
+        LocationManager locationManager = (LocationManager) activity.getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        List<String> providers = locationManager.getProviders(true);
+        Location location = null;
+        for (String provider : providers) {
+            Location l = locationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (location == null || l.getAccuracy() < location.getAccuracy()) {
+                location = l;
+            }
+        }
+        return location;
     }
 
     class GetJSONRoutes extends AsyncTask<String, Void, String> {

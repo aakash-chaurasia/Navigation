@@ -1,15 +1,12 @@
 package aakash.example.com.navigation;
 
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.AsyncTask;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -22,13 +19,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PolylineOptions;
-
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -36,7 +26,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationManager locationManager;
     private LocationListener locationListener;
 
-    private LatLng SOURCE = new LatLng(40.722543, -73.998585);
+    private LatLng SOURCE = new LatLng(33.424564, -111.94);
     private LatLng DESTINATION = new LatLng(40.7057, -73.9964);
     private NavigationHelper navigationHelper;
     private BitmapDescriptor SOURCE_BITMAP;
@@ -70,16 +60,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        Location location = navigationHelper.getCurrentLocation(this, this);
+        if (location != null) {
+            double latitude = location.getLatitude();
+            double longitude = location.getLongitude();
+            LatLng latLng = new LatLng(latitude, longitude);
+            SOURCE = latLng;
+        } else {
+            Toast.makeText(this, "Please enable gps", Toast.LENGTH_LONG).show();
+            DESTINATION = null;
+        }
         mMap.setMinZoomPreference(MIN_ZOOM_LEVEL);
         if (SOURCE != null && DESTINATION != null) {
             navigationHelper.plotMap(mMap, SOURCE, DESTINATION);
-            CameraUpdate cameraUpdate = getCameraPosition();
-            mMap.moveCamera(cameraUpdate);
             addMarkers();
-        } else {
-            Toast.makeText(this, "Unable To Create Map", Toast.LENGTH_LONG).show();
-            finish();
         }
+        CameraUpdate cameraUpdate = getCameraPosition();
+        mMap.moveCamera(cameraUpdate);
     }
 
     private BitmapDescriptor createMarkersIcon(int drawable) {
