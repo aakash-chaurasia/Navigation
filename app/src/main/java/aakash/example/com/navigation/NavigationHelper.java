@@ -11,6 +11,7 @@ import android.os.AsyncTask;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
+import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -51,35 +52,6 @@ public class NavigationHelper {
         String output = "json";
         String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + params;
         return url;
-    }
-
-    public Location getCurrentLocation(Context context, Activity activity){
-        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            ActivityCompat.requestPermissions(activity,
-                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION},
-                    1000 );
-        }
-        LocationManager locationManager = (LocationManager) activity.getSystemService(LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        List<String> providers = locationManager.getProviders(true);
-        Location location = null;
-        for (String provider : providers) {
-            Location l = locationManager.getLastKnownLocation(provider);
-            if (l == null) {
-                continue;
-            }
-            if (location == null || l.getAccuracy() < location.getAccuracy()) {
-                location = l;
-            }
-        }
-        return location;
     }
 
     class GetJSONRoutes extends AsyncTask<String, Void, String> {
