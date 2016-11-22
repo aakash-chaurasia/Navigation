@@ -1,12 +1,13 @@
 package aakash.example.com.navigation;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -28,7 +29,7 @@ import java.util.List;
 
 public class NavigationHelper {
     private GoogleMap mMap;
-    private int COLOR = Color.CYAN;
+    private int COLOR = Color.BLUE;
     public void plotMap(GoogleMap mMap, LatLng SOURCE, LatLng DESTINATION) {
         this.mMap = mMap;
         String url = getDirectionApiURL(SOURCE, DESTINATION);
@@ -44,6 +45,25 @@ public class NavigationHelper {
         String output = "json";
         String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + params;
         return url;
+    }
+
+    public LatLng getLatLngFromAddress(Context context,String strAddress) {
+
+        Geocoder geocoder = new Geocoder(context);
+        Address address;
+        LatLng latLng = null;
+
+        try {
+            address = geocoder.getFromLocationName(strAddress, 5).get(0);
+            if (address == null) {
+                return null;
+            }
+            latLng = new LatLng(address.getLatitude(), address.getLongitude() );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return latLng;
     }
 
     class GetJSONRoutes extends AsyncTask<String, Void, String> {

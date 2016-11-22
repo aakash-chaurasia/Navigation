@@ -1,15 +1,22 @@
 package aakash.example.com.navigation;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.AsyncTask;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -21,13 +28,10 @@ import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PolylineOptions;
 
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.security.PrivateKey;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -35,8 +39,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private LocationManager locationManager;
     private LocationListener locationListener;
-
-    private LatLng SOURCE = new LatLng(40.722543, -73.998585);
+    private LatLng SOURCE = new LatLng(33.424564, -111.94);
     private LatLng DESTINATION = new LatLng(40.7057, -73.9964);
     private NavigationHelper navigationHelper;
     private BitmapDescriptor SOURCE_BITMAP;
@@ -44,18 +47,50 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private int ZOOM_LEVEL = 15;
     private int MIN_ZOOM_LEVEL = 10;
     private int MAP_ANGLE = 45;
-
+    private Marker sourceMarker;
+    private String provStr = LocationManager.GPS_PROVIDER;
+    private Location location;
+    private Button go;
+    private EditText destination;
+    private OnMapReadyCallback onMapReadyCallback;
+    private Context CONTEXT;
+    private Boolean MAP_STARTED = false;
+    private SensorManager sensorManager;
+    private SensorEventListener mySensorEventListener;
+    private float AZIMUTH = 0;
+    private List<Sensor> mySensors;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
+        setContentView(R.layout.activity_main);
         navigationHelper = new NavigationHelper();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        SOURCE_BITMAP = createMarkersIcon(R.drawable.boy);
-        DESTINATION_BITMAP = createMarkersIcon(R.drawable.treasure);
-        mapFragment.getMapAsync(this);
+        final SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.googleMap);
+        go = (Button) findViewById(R.id.button);
+        destination = (EditText) findViewById(R.id.destination);
+        locationListener = new myLocationListener();
+        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        mySensors = sensorManager.getSensorList(Sensor.TYPE_SIGNIFICANT_MOTION);
+        mySensorEventListener = new mySensorEventListener();
+        location = getCurrentLocation();
+        SOURCE_BITMAP = createMarkersIcon(R.drawable.car, 100, 150);
+        DESTINATION_BITMAP = createMarkersIcon(R.drawable.flag,150, 100);
+        onMapReadyCallback = this;
+        CONTEXT = this;
+        go.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mMap != null) {
+                    mMap.clear();
+                }
+                String destinationstr = destination.getText().toString();
+                DESTINATION = navigationHelper.getLatLngFromAddress(CONTEXT, destinationstr);
+                if(DESTINATION != null) {
+                    mapFragment.getMapAsync(onMapReadyCallback);
+                }
+            }
+        });
     }
 
     /**
@@ -68,23 +103,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * installed Google Play services and returned to the app.
      */
     @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
+    public void onMapReady(GoogleMap googlemap) {
+        mMap = googlemap;
+
+        if (location != null) {
+            double latitude = location.getLatitude();
+            double longitude = location.getLongitude();
+            LatLng latLng = new LatLng(latitude, longitude);
+            SOURCE = latLng;
+        } else {
+            Toast.makeText(this, "Please enable gps", Toast.LENGTH_LONG).show();
+            DESTINATION = null;
+        }
         mMap.setMinZoomPreference(MIN_ZOOM_LEVEL);
         if (SOURCE != null && DESTINATION != null) {
             navigationHelper.plotMap(mMap, SOURCE, DESTINATION);
-            CameraUpdate cameraUpdate = getCameraPosition();
-            mMap.moveCamera(cameraUpdate);
             addMarkers();
-        } else {
-            Toast.makeText(this, "Unable To Create Map", Toast.LENGTH_LONG).show();
-            finish();
         }
+        CameraUpdate cameraUpdate = getCameraPosition();
+        mMap.moveCamera(cameraUpdate);
+        MAP_STARTED = true;
     }
 
-    private BitmapDescriptor createMarkersIcon(int drawable) {
-        int height = 200;
-        int width = 200;
+    private BitmapDescriptor createMarkersIcon(int drawable, int height, int width) {
         BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(drawable);
         Bitmap b=bitmapdraw.getBitmap();
         Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
@@ -93,7 +134,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void addMarkers() {
         if (mMap != null) {
-            mMap.addMarker(new MarkerOptions().icon(SOURCE_BITMAP).position(SOURCE)
+            sourceMarker = mMap.addMarker(new MarkerOptions().icon(SOURCE_BITMAP).position(SOURCE)
                     .title("Source"));
             mMap.addMarker(new MarkerOptions().position(DESTINATION)
                     .title("Destination").icon(DESTINATION_BITMAP));
@@ -108,4 +149,76 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .build();
         return CameraUpdateFactory.newCameraPosition(cameraPosition);
     }
+
+    private Location getCurrentLocation(){
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION},
+                    1 );
+        }
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        List<String> providers = locationManager.getProviders(true);
+        Location location = null;
+        for (String provider : providers) {
+            Location l = locationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (location == null || l.getAccuracy() < location.getAccuracy()) {
+                location = l;
+            }
+        }
+        locationManager.requestLocationUpdates(provStr, 10, 0, locationListener);
+        sensorManager.registerListener(mySensorEventListener, mySensors.get(0), SensorManager.SENSOR_DELAY_GAME);
+        return location;
+    }
+
+    class myLocationListener implements LocationListener {
+        private String tag = "me";
+        @Override
+        public void onLocationChanged(Location loc) {
+            if(MAP_STARTED) {
+                location = loc;
+                SOURCE = new LatLng(loc.getLatitude(), loc.getLongitude());
+                sourceMarker.setRotation(AZIMUTH);
+                sourceMarker.setPosition(SOURCE);
+            }
+        }
+
+        @Override
+        public void onStatusChanged(String s, int i, Bundle bundle) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String s) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String s) {
+
+        }
+    }
+
+    class mySensorEventListener implements SensorEventListener {
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            //device heading in degrees
+            AZIMUTH = event.values[0];
+        }
+    };
 }
