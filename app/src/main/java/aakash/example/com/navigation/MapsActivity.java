@@ -71,7 +71,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         destination = (EditText) findViewById(R.id.destination);
         locationListener = new myLocationListener();
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        mySensors = sensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
+        mySensors = sensorManager.getSensorList(Sensor.TYPE_SIGNIFICANT_MOTION);
         mySensorEventListener = new mySensorEventListener();
         location = getCurrentLocation();
         SOURCE_BITMAP = createMarkersIcon(R.drawable.car, 100, 150);
@@ -183,9 +183,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     class myLocationListener implements LocationListener {
         private String tag = "me";
         @Override
-        public void onLocationChanged(Location location) {
+        public void onLocationChanged(Location loc) {
             if(MAP_STARTED) {
-                SOURCE = new LatLng(location.getLatitude(), location.getLongitude());
+                location = loc;
+                SOURCE = new LatLng(loc.getLatitude(), loc.getLongitude());
                 sourceMarker.setRotation(AZIMUTH);
                 sourceMarker.setPosition(SOURCE);
             }

@@ -1,19 +1,12 @@
 package aakash.example.com.navigation;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
-import android.location.Criteria;
 import android.location.Geocoder;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.AsyncTask;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
-import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -29,8 +22,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import static android.content.Context.LOCATION_SERVICE;
 
 /**
  * Created by Aakash on 11/20/2016.
